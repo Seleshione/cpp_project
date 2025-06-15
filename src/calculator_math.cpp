@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <sstream>
+#include <cctype>
 
 double applyBinaryOperation(double a, const std::string& op, double b) {
     if (op == "+") {
@@ -36,28 +37,60 @@ double factorial(double x) {
     return result;
 }
 
-std::string convertBase(long long number, int base) {
-    if (base < 2 || base > 16) {
+std::string convertBase(const std::string& numberStr, int fromBase, int toBase) {
+    if (fromBase < 2 || fromBase > 16 || toBase < 2 || toBase > 16) {
         throw std::runtime_error("Base must be between 2 and 16");
     }
 
-    if (number == 0) {
+    if (numberStr.empty()) {
+        throw std::runtime_error("Empty number string");
+    }
+
+    const std::string validDigits = "0123456789ABCDEF";
+    bool isNegative = false;
+    size_t startPos = 0;
+
+    if (numberStr[0] == '-') {
+        isNegative = true;
+        startPos = 1;
+    }
+
+    for (size_t i = startPos; i < numberStr.size(); ++i) {
+        char c = toupper(numberStr[i]);
+        size_t pos = validDigits.find(c);
+        if (pos == std::string::npos || pos >= static_cast<size_t>(fromBase)) {
+            throw std::runtime_error("Invalid digit for the given base");
+        }
+    }
+
+    long long decimalValue = 0;
+    for (size_t i = startPos; i < numberStr.size(); ++i) {
+        char c = toupper(numberStr[i]);
+        int digit = (c >= 'A') ? (10 + c - 'A') : (c - '0');
+        decimalValue = decimalValue * fromBase + digit;
+    }
+
+    if (isNegative) {
+        decimalValue = -decimalValue;
+    }
+
+    if (decimalValue == 0) {
         return "0";
     }
 
-    bool isNegative = false;
+    std::string result;
+    long long number = decimalValue;
     if (number < 0) {
         isNegative = true;
         number = -number;
+    } else {
+        isNegative = false;
     }
 
-    const std::string digits = "0123456789ABCDEF";
-    std::string result;
-
     while (number > 0) {
-        int remainder = number % base;
-        result.push_back(digits[remainder]);
-        number /= base;
+        int remainder = number % toBase;
+        result.push_back(validDigits[remainder]);
+        number /= toBase;
     }
 
     if (isNegative) {
