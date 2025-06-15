@@ -28,6 +28,9 @@ add_custom_command(TARGET GraphicalCalculator POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
         "${CMAKE_CURRENT_SOURCE_DIR}/SFML-2.6.1/bin/sfml-system-d-2.dll"
         $<TARGET_FILE_DIR:GraphicalCalculator>
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/Sansation_Bold.ttf"
+        $<TARGET_FILE_DIR:GraphicalCalculator>
 )
 
 enable_testing()
