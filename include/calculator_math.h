@@ -1,7 +1,65 @@
 #pragma once
 #include <string>
 
+/**
+ * @brief Реализация бинарной операции
+ *
+ * @param a Первый операнд
+ * @param op Оператор (+, -, *, /, ^)
+ * @param b Второй операнд
+ * @return Результат операции
+ * @throw std::runtime_error При делении на ноль или неверном операторе
+ *
+ * @details Выполняет одну из базовых арифметических операций:
+ * - Сложение (+)
+ * - Вычитание (-)
+ * - Умножение (*)
+ * - Деление (/) с проверкой деления на ноль
+ * - Возведение в степень (^)
+ */
 double applyBinaryOperation(double a, const std::string& op, double b);
+
+/**
+ * @brief Реализация вычисления факториала
+ *
+ * @param x Входное число (должно быть неотрицательным целым)
+ * @return Факториал числа
+ * @throw std::runtime_error Для отрицательных или нецелых чисел
+ *
+ * @details Использует итеративный подход для вычисления факториала.
+ * Максимальное поддерживаемое значение зависит от типа double.
+ */
 double factorial(double x);
-std::string convertBase(long long number, int base);
+
+/**
+ * @brief Реализация конвертации между системами счисления
+ *
+ * @param numberStr Строковое представление числа
+ * @param fromBase Исходная система счисления (2-16)
+ * @param toBase Целевая система счисления (2-16)
+ * @return Строковое представление числа в новой системе
+ * @throw std::runtime_error При недопустимом основании системы
+ * @throw std::runtime_error При некорректных цифрах числа
+ *
+ * @details Алгоритм:
+ * 1. Проверка допустимости оснований систем
+ * 2. Парсинг числа с учетом знака
+ * 3. Преобразование в десятичную систему
+ * 4. Конвертация в целевую систему
+ * Поддерживаются отрицательные числа.
+ */
+std::string convertBase(const std::string& numberStr, int fromBase, int toBase);
+
+/**
+ * @brief Реализация тригонометрических операций
+ *
+ * @param value Угол в радианах
+ * @param op Идентификатор операции ("sin", "cos", "tan", "cot")
+ * @return Результат вычисления
+ * @throw std::runtime_error При недопустимой операции
+ * @throw std::runtime_error При вычислении cot(0)
+ *
+ * @details Использует стандартные математические функции из <cmath>.
+ * Для cotangent выполняет проверку деления на ноль.
+ */
 double applyTrigonometricOperation(double value, const std::string& op);
