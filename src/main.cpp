@@ -1,8 +1,3 @@
-/**
- * @file graphical_calculator.cpp
- * @brief Реализация графического калькулятора с использованием SFML
- */
-
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 #include <iostream>
@@ -12,21 +7,23 @@
 #include <cmath>
 #include <stdexcept>
 #include <algorithm>
+#include <bitset>
+#include "calculator_math.h"
 
 /**
  * @brief Структура, представляющая графическую кнопку калькулятора
- * 
+ *
  * Содержит визуальные элементы (прямоугольник и текст) и функциональную метку.
  */
 struct Button {
-    sf::RectangleShape shape; ///< Графическая форма кнопки
-    sf::Text text;           ///< Текст на кнопке
-    std::string label;       ///< Функциональная метка кнопки
+    sf::RectangleShape shape;
+    sf::Text text;
+    std::string label;
 };
 
 /**
  * @brief Создает кнопку с заданными параметрами
- * 
+ *
  * @param label Текстовая метка кнопки
  * @param font Шрифт для текста кнопки
  * @param pos Позиция кнопки (верхний левый угол)
@@ -46,8 +43,7 @@ Button createButton(const std::string& label, const sf::Font& font, sf::Vector2f
     btn.text.setString(label);
     btn.text.setCharacterSize(20);
     btn.text.setFillColor(sf::Color::Black);
-    
-    // Центрирование текста в кнопке
+
     sf::FloatRect textRect = btn.text.getLocalBounds();
     btn.text.setOrigin(textRect.left + textRect.width / 2.0f,
         textRect.top + textRect.height / 2.0f);
@@ -55,26 +51,16 @@ Button createButton(const std::string& label, const sf::Font& font, sf::Vector2f
     return btn;
 }
 
-/**
- * @brief Основная функция программы
- * 
- * Создает графический интерфейс калькулятора и обрабатывает пользовательский ввод.
- * 
- * @return int Код завершения программы
- */
 int main() {
-    // Создание окна 800x600 пикселей
     sf::RenderWindow window(sf::VideoMode(800, 600), "Graphical Calculator", sf::Style::Titlebar | sf::Style::Close);
 
-    // Загрузка шрифта
     sf::Font font;
-    std::string fontPath = "C:/Users/notebook/Desktop/shr/Sansation_Bold.ttf";
+    std::string fontPath = "Sansation_Bold.ttf";
     if (!font.loadFromFile(fontPath)) {
         std::cerr << "Failed to load font from: " << fontPath << std::endl;
         return EXIT_FAILURE;
     }
 
-    // Создание дисплея калькулятора
     sf::RectangleShape displayRect(sf::Vector2f(780, 80));
     displayRect.setFillColor(sf::Color(200, 200, 200));
     displayRect.setPosition(10, 10);
@@ -86,12 +72,20 @@ int main() {
     displayText.setCharacterSize(24);
     displayText.setFillColor(sf::Color::Black);
     displayText.setPosition(20, 20);
-    std::string calcDisplay = "0"; // Текущее значение на дисплее
+    std::string calcDisplay = "0";
 
-    // Список всех кнопок калькулятора
+    double storedValue = 0.0;
+    std::string pendingOp = "";
+    bool awaitingBinaryOperation = false;
+    bool resetDisplay = false;
+    bool isConverting = false;
+    bool isEnteringBase = false;
+    int targetBase = 10;
+    std::string numberToConvert = "";
+    std::string baseInput = "";
+
     std::vector<Button> buttons;
 
-    // --- Основные кнопки (4x4) ---
     sf::Vector2f basicStart(10, 100);
     sf::Vector2f basicSize(90, 70);
     float basicSpacing = 10;
@@ -103,17 +97,14 @@ int main() {
         {"0", ".", "=", "+"}
     };
 
-    // Создание основных кнопок
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             sf::Vector2f pos(basicStart.x + j * (basicSize.x + basicSpacing),
                 basicStart.y + i * (basicSize.y + basicSpacing));
-            Button b = createButton(basicLabels[i][j], font, pos, basicSize);
-            buttons.push_back(b);
+            buttons.push_back(createButton(basicLabels[i][j], font, pos, basicSize));
         }
     }
 
-    // --- Функциональные кнопки (2x5) ---
     sf::Vector2f funcStart(420, 100);
     sf::Vector2f funcSize(150, 60);
     float funcSpacing = 10;
@@ -126,116 +117,26 @@ int main() {
         {"DEL", "EXIT"}
     };
 
-    // Создание функциональных кнопок
     for (int i = 0; i < 5; i++) {
         for (int j = 0; j < 2; j++) {
             sf::Vector2f pos(funcStart.x + j * (funcSize.x + funcSpacing),
                 funcStart.y + i * (funcSize.y + funcSpacing));
-            Button b = createButton(funcLabels[i][j], font, pos, funcSize);
-            buttons.push_back(b);
+            buttons.push_back(createButton(funcLabels[i][j], font, pos, funcSize));
         }
     }
 
-    // Состояние калькулятора
-    double storedValue = 0.0;      ///< Хранимое значение для операций
-    std::string pendingOp = "";    ///< Ожидающая операция
-    bool awaitingBinaryOperation = false; ///< Флаг ожидания бинарной операции
-    bool resetDisplay = false;     ///< Флаг сброса дисплея
-
-    // Лямбда для обновления текста на дисплее
+    /**
+    * @brief Обновляет текстовый дисплей калькулятора
+    *
+    * @param calcDisplay Текущее значение для отображения (строка)
+    * @param displayText SFML-текст для визуализации
+    * @param displayRect SFML-прямоугольник, определяющий границы дисплея
+    */
     auto updateDisplayText = [&]() {
         displayText.setString(calcDisplay);
-    };
+        };
     updateDisplayText();
 
-    /**
-     * @brief Применяет бинарную операцию к двум числам
-     * 
-     * @param a Первый операнд
-     * @param op Оператор (+, -, *, /, ^)
-     * @param b Второй операнд
-     * @return double Результат операции
-     * @throws std::runtime_error При делении на ноль или неверном операторе
-     */
-    auto applyBinaryOperation = [&](double a, const std::string& op, double b) -> double {
-        if (op == "+") return a + b;
-        else if (op == "-") return a - b;
-        else if (op == "*") return a * b;
-        else if (op == "/") {
-            if (b == 0) throw std::runtime_error("Деление на ноль");
-            return a / b;
-        }
-        else if (op == "^") return std::pow(a, b);
-        else throw std::runtime_error("Неизвестная операция");
-    };
-
-    /**
-     * @brief Вычисляет факториал числа
-     * 
-     * @param x Входное число (должно быть неотрицательным целым)
-     * @return double Факториал числа
-     * @throws std::runtime_error Для отрицательных или нецелых чисел
-     */
-    auto factorial = [&](double x) -> double {
-        if (x < 0 || std::floor(x) != x)
-            throw std::runtime_error("Факториал определен только для натуральных чисел");
-        double res = 1;
-        for (int i = 1; i <= static_cast<int>(x); i++) {
-            res *= i;
-        }
-        return res;
-    };
-
-    /**
-     * @brief Конвертирует число в другую систему счисления
-     * 
-     * @param number Число для конвертации
-     * @param base Целевая система счисления (2-16)
-     * @return std::string Строковое представление числа в новой системе
-     */
-    auto convertBase = [&](long long number, int base) -> std::string {
-        if (number == 0) return "0";
-        bool neg = false;
-        if (number < 0) {
-            neg = true;
-            number = -number;
-        }
-        std::string digits = "0123456789ABCDEF";
-        std::string result;
-        while (number > 0) {
-            int rem = number % base;
-            result.push_back(digits[rem]);
-            number /= base;
-        }
-        if (neg)
-            result.push_back('-');
-        std::reverse(result.begin(), result.end());
-        return result;
-    };
-
-    /**
-     * @brief Выполняет конвертацию числа и отображает результаты
-     */
-    auto performConversion = [&]() {
-        try {
-            double val = std::stod(calcDisplay);
-            long long intVal = static_cast<long long>(val);
-            std::ostringstream oss;
-            std::vector<int> bases = { 2, 3, 4, 5, 6, 7, 8, 9, 10, 16 };
-            for (int b : bases) {
-                oss << b << ": " << convertBase(intVal, b) << "\n";
-            }
-            calcDisplay = oss.str();
-            resetDisplay = true;
-        }
-        catch (...) {
-            calcDisplay = "Ошибка конвертации";
-            resetDisplay = true;
-        }
-        updateDisplayText();
-    };
-
-    // Главный цикл программы
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -253,10 +154,69 @@ int main() {
                                     window.close();
                                 }
                                 else if (label == "DEL") {
-                                    if (!calcDisplay.empty()) {
-                                        calcDisplay.pop_back();
-                                        if (calcDisplay.empty())
-                                            calcDisplay = "0";
+                                    if (isConverting) {
+                                        if (isEnteringBase) {
+                                            if (!baseInput.empty()) {
+                                                baseInput.pop_back();
+                                                if (baseInput.empty()) {
+                                                    isEnteringBase = false;
+                                                    calcDisplay = "Base? (2-16)";
+                                                }
+                                                else {
+                                                    calcDisplay = "Base: " + baseInput;
+                                                }
+                                            }
+                                        }
+                                        else {
+                                            isConverting = false;
+                                            calcDisplay = numberToConvert;
+                                        }
+                                    }
+                                    else {
+                                        if (!calcDisplay.empty()) {
+                                            calcDisplay.pop_back();
+                                            if (calcDisplay.empty())
+                                                calcDisplay = "0";
+                                        }
+                                    }
+                                }
+                                else if (label == "conv") {
+                                    if (!isConverting) {
+                                        numberToConvert = calcDisplay;
+                                        isConverting = true;
+                                        isEnteringBase = true;
+                                        baseInput = "";
+                                        calcDisplay = "Base? (2-16)";
+                                    }
+                                }
+                                else if (isdigit(label[0])) {
+                                    if (isConverting && isEnteringBase) {
+                                        baseInput += label;
+                                        calcDisplay = "Base: " + baseInput;
+
+                                        if (baseInput.length() == 2) { 
+                                            targetBase = std::stoi(baseInput);
+                                            if (targetBase >= 2 && targetBase <= 16) {
+                                                calcDisplay = convertBase(numberToConvert, 10, targetBase);
+                                                isConverting = false;
+                                                isEnteringBase = false;
+                                            }
+                                            else {
+                                                calcDisplay = "Invalid base";
+                                                isConverting = false;
+                                                isEnteringBase = false;
+                                            }
+                                        }
+                                    }
+                                    else if (!isConverting) {
+                                        if (resetDisplay) {
+                                            calcDisplay = "";
+                                            resetDisplay = false;
+                                        }
+                                        if (calcDisplay == "0")
+                                            calcDisplay = label;
+                                        else
+                                            calcDisplay += label;
                                     }
                                 }
                                 else if (label == "+" || label == "-" || label == "*" || label == "/" || label == "^") {
@@ -307,7 +267,7 @@ int main() {
                                     double val = std::stod(calcDisplay);
                                     double tanVal = std::tan(val);
                                     if (tanVal == 0)
-                                        throw std::runtime_error("������� �� 0 � cot");
+                                        throw std::runtime_error("cot of 0");
                                     double result = 1.0 / tanVal;
                                     calcDisplay = std::to_string(result);
                                     resetDisplay = true;
@@ -324,34 +284,35 @@ int main() {
                                     else
                                         calcDisplay = "-" + calcDisplay;
                                 }
-                                else if (label == "conv") {
-                                    performConversion();
-                                }
-                                else {
-                                    if (resetDisplay) {
-                                        calcDisplay = "";
-                                        resetDisplay = false;
+                                else if (label == ".") {
+                                    if (calcDisplay.find('.') == std::string::npos) {
+                                        calcDisplay += ".";
                                     }
-                                    if (calcDisplay == "0" && label != ".")
-                                        calcDisplay = label;
-                                    else
-                                        calcDisplay += label;
                                 }
                             }
                             catch (std::exception& ex) {
-                                calcDisplay = std::string("������: ") + ex.what();
+                                calcDisplay = std::string("Error: ") + ex.what();
                                 awaitingBinaryOperation = false;
                                 pendingOp = "";
                                 resetDisplay = true;
+                                isConverting = false;
+                                isEnteringBase = false;
                             }
                             updateDisplayText();
-                            break;  
+                            break;
                         }
                     }
                 }
             }
         }
-        // Отрисовка интерфейса
+
+        if (isConverting) {
+            displayRect.setFillColor(sf::Color(200, 230, 200));
+        }
+        else {
+            displayRect.setFillColor(sf::Color(200, 200, 200));
+        }
+
         window.clear(sf::Color::White);
         window.draw(displayRect);
         window.draw(displayText);
