@@ -21,19 +21,19 @@ double applyBinaryOperation(double a, const std::string& op, double b) {
         result = a * b;
     else if (op == "/") {
         if (std::fabs(b) < 1e-6)
-            throw std::runtime_error("Деление на ноль");
+            throw std::runtime_error("Division by zero");
         result = a / b;
     }
     else if (op == "^")
         result = std::pow(a, b);
     else
-        throw std::runtime_error("Неверный оператор");
+        throw std::runtime_error("Incorrect operator");
     return roundIfInteger(result);
 }
 
 double factorial(double x) {
     if (x < 0 || std::floor(x) != x)
-        throw std::runtime_error("Факториал определён только для неотрицательных целых чисел");
+        throw std::runtime_error("The factorial is defined only for non-negative integers.");
     double result = 1;
     for (int i = 1; i <= static_cast<int>(x); i++) {
         result *= i;
@@ -48,12 +48,12 @@ static int charToVal(char c) {
         return c - 'A' + 10;
     if (c >= 'a' && c <= 'f')
         return c - 'a' + 10;
-    throw std::runtime_error("Неверная цифра в числе");
+    throw std::runtime_error("Incorrect digit in number");
 }
 
 std::string convertBase(const std::string& numberStr, int fromBase, int toBase) {
     if (fromBase < 2 || fromBase > 16 || toBase < 2 || toBase > 16)
-        throw std::runtime_error("Основание системы должно быть от 2 до 16");
+        throw std::runtime_error("The base of the system should be from 2 to 16");
     bool isNegative = false;
     size_t index = 0;
     if (numberStr[0] == '-') {
@@ -64,7 +64,7 @@ std::string convertBase(const std::string& numberStr, int fromBase, int toBase) 
     for (; index < numberStr.size(); index++) {
         int digit = charToVal(numberStr[index]);
         if (digit >= fromBase)
-            throw std::runtime_error("Цифра не соответствует основанию системы");
+            throw std::runtime_error("The number does not correspond to the base of the system");
         num = num * fromBase + digit;
     }
     if (isNegative)
@@ -97,16 +97,16 @@ double applyTrigonometricOperation(double value, const std::string& op) {
     }
     else if (op == "tan") {
         if (std::fabs(std::cos(rad)) < 1e-6)
-            throw std::runtime_error("Тангенс не определен для данного угла");
+            throw std::runtime_error("Tangent is not defined for this angle.");
         result = std::tan(rad);
     }
     else if (op == "cot") {
         if (std::fabs(std::sin(rad)) < 1e-6)
-            throw std::runtime_error("Котангенс не определен для данного угла");
+            throw std::runtime_error("Cotangent is not defined for this angle.");
         result = std::cos(rad) / std::sin(rad);
     }
     else {
-        throw std::runtime_error("Неверная тригонометрическая операция");
+        throw std::runtime_error("Incorrect trigonometric operation");
     }
     return roundIfInteger(result);
 }
