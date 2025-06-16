@@ -3,6 +3,7 @@
 
 /**
  * @brief Реализация бинарной операции
+ *
  * @param a Первый операнд
  * @param op Оператор (+, -, *, /, ^)
  * @param b Второй операнд
@@ -13,6 +14,7 @@ double applyBinaryOperation(double a, const std::string& op, double b);
 
 /**
  * @brief Реализация вычисления факториала
+ *
  * @param x Входное число (должно быть неотрицательным целым)
  * @return Факториал числа
  * @throw std::runtime_error Для отрицательных или нецелых чисел
@@ -21,6 +23,7 @@ double factorial(double x);
 
 /**
  * @brief Реализация конвертации между системами счисления
+ *
  * @param numberStr Строковое представление числа
  * @param fromBase Исходная система счисления (2-16)
  * @param toBase Целевая система счисления (2-16)
@@ -32,6 +35,7 @@ std::string convertBase(const std::string& numberStr, int fromBase, int toBase);
 
 /**
  * @brief Реализация тригонометрических операций
+ *
  * @param value Угол в градусах
  * @param op Идентификатор операции ("sin", "cos", "tan", "cot")
  * @return Результат вычисления
