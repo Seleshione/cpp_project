@@ -1,120 +1,112 @@
 #include "calculator_math.h"
-#include <string>
-#include <cmath>
-#include <algorithm>
 #include <stdexcept>
+#include <cmath>
 #include <sstream>
-#include <cctype>
+#include <algorithm>
+
+static double roundIfInteger(double value) {
+    double rounded = std::round(value);
+    if (std::fabs(value - rounded) < 1e-6)
+        return rounded;
+    return value;
+}
 
 double applyBinaryOperation(double a, const std::string& op, double b) {
-    if (op == "+") {
-        return a + b;
-    } else if (op == "-") {
-        return a - b;
-    } else if (op == "*") {
-        return a * b;
-    } else if (op == "/") {
-        if (b == 0) {
-            throw std::runtime_error("Division by zero");
-        }
-        return a / b;
-    } else if (op == "^") {
-        return std::pow(a, b);
-    } else {
-        throw std::runtime_error("Unknown operator");
+    double result;
+    if (op == "+")
+        result = a + b;
+    else if (op == "-")
+        result = a - b;
+    else if (op == "*")
+        result = a * b;
+    else if (op == "/") {
+        if (std::fabs(b) < 1e-6)
+            throw std::runtime_error("Деление на ноль");
+        result = a / b;
     }
+    else if (op == "^")
+        result = std::pow(a, b);
+    else
+        throw std::runtime_error("Неверный оператор");
+    return roundIfInteger(result);
 }
 
 double factorial(double x) {
-    if (x < 0 || std::floor(x) != x) {
-        throw std::runtime_error("Factorial is only defined for non-negative integers");
-    }
-    
+    if (x < 0 || std::floor(x) != x)
+        throw std::runtime_error("Факториал определён только для неотрицательных целых чисел");
     double result = 1;
-    for (int i = 1; i <= static_cast<int>(x); ++i) {
+    for (int i = 1; i <= static_cast<int>(x); i++) {
         result *= i;
     }
-    return result;
+    return roundIfInteger(result);
+}
+
+static int charToVal(char c) {
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    throw std::runtime_error("Неверная цифра в числе");
 }
 
 std::string convertBase(const std::string& numberStr, int fromBase, int toBase) {
-    if (fromBase < 2 || fromBase > 16 || toBase < 2 || toBase > 16) {
-        throw std::runtime_error("Base must be between 2 and 16");
-    }
-
-    if (numberStr.empty()) {
-        throw std::runtime_error("Empty number string");
-    }
-
-    const std::string validDigits = "0123456789ABCDEF";
+    if (fromBase < 2 || fromBase > 16 || toBase < 2 || toBase > 16)
+        throw std::runtime_error("Основание системы должно быть от 2 до 16");
     bool isNegative = false;
-    size_t startPos = 0;
-
+    size_t index = 0;
     if (numberStr[0] == '-') {
         isNegative = true;
-        startPos = 1;
+        index = 1;
     }
-
-    for (size_t i = startPos; i < numberStr.size(); ++i) {
-        char c = toupper(numberStr[i]);
-        size_t pos = validDigits.find(c);
-        if (pos == std::string::npos || pos >= static_cast<size_t>(fromBase)) {
-            throw std::runtime_error("Invalid digit for the given base");
-        }
+    long long num = 0;
+    for (; index < numberStr.size(); index++) {
+        int digit = charToVal(numberStr[index]);
+        if (digit >= fromBase)
+            throw std::runtime_error("Цифра не соответствует основанию системы");
+        num = num * fromBase + digit;
     }
-
-    long long decimalValue = 0;
-    for (size_t i = startPos; i < numberStr.size(); ++i) {
-        char c = toupper(numberStr[i]);
-        int digit = (c >= 'A') ? (10 + c - 'A') : (c - '0');
-        decimalValue = decimalValue * fromBase + digit;
-    }
-
-    if (isNegative) {
-        decimalValue = -decimalValue;
-    }
-
-    if (decimalValue == 0) {
-        return "0";
-    }
-
+    if (isNegative)
+        num = -num;
     std::string result;
-    long long number = decimalValue;
-    if (number < 0) {
-        isNegative = true;
-        number = -number;
-    } else {
-        isNegative = false;
+    bool neg = num < 0;
+    unsigned long long n = neg ? -num : num;
+    if (n == 0)
+        result = "0";
+    while (n > 0) {
+        int remainder = n % toBase;
+        char digit = (remainder < 10) ? ('0' + remainder) : ('A' + remainder - 10);
+        result.push_back(digit);
+        n /= toBase;
     }
-
-    while (number > 0) {
-        int remainder = number % toBase;
-        result.push_back(validDigits[remainder]);
-        number /= toBase;
-    }
-
-    if (isNegative) {
+    if (neg)
         result.push_back('-');
-    }
-
     std::reverse(result.begin(), result.end());
     return result;
 }
 
 double applyTrigonometricOperation(double value, const std::string& op) {
+    double rad = value * 3.14159265358979323846 / 180.0;
+    double result;
     if (op == "sin") {
-        return std::sin(value);
-    } else if (op == "cos") {
-        return std::cos(value);
-    } else if (op == "tan") {
-        return std::tan(value);
-    } else if (op == "cot") {
-        double tanVal = std::tan(value);
-        if (tanVal == 0) {
-            throw std::runtime_error("Division by zero in cotangent");
-        }
-        return 1.0 / tanVal;
-    } else {
-        throw std::runtime_error("Unknown trigonometric operation");
+        result = std::sin(rad);
     }
+    else if (op == "cos") {
+        result = std::cos(rad);
+    }
+    else if (op == "tan") {
+        if (std::fabs(std::cos(rad)) < 1e-6)
+            throw std::runtime_error("Тангенс не определен для данного угла");
+        result = std::tan(rad);
+    }
+    else if (op == "cot") {
+        if (std::fabs(std::sin(rad)) < 1e-6)
+            throw std::runtime_error("Котангенс не определен для данного угла");
+        result = std::cos(rad) / std::sin(rad);
+    }
+    else {
+        throw std::runtime_error("Неверная тригонометрическая операция");
+    }
+    return roundIfInteger(result);
 }
