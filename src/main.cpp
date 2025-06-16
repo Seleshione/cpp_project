@@ -105,20 +105,30 @@ int main() {
                                 expression = "";
                             }
                             else if (key == "=") {
-                                size_t opPos = expression.find_first_of("+-*/^");
-                                if (opPos != std::string::npos) {
-                                    std::string left = expression.substr(0, opPos);
-                                    std::string right = expression.substr(opPos + 1);
-                                    char op = expression[opPos];
-                                    try {
+                                try {
+                                    size_t opPos = std::string::npos;
+                                    for (size_t i = 1; i < expression.size(); ++i) {
+                                        char c = expression[i];
+                                        if (c == '+' || c == '-' || c == '*' || c == '/' || c == '^') {
+                                            if (c == '-' && (expression[i - 1] == '*' || expression[i - 1] == '/' || expression[i - 1] == '^')) {
+                                                continue;  
+                                            }
+                                            opPos = i;
+                                            break;
+                                        }
+                                    }
+                                    if (opPos != std::string::npos) {
+                                        std::string left = expression.substr(0, opPos);
+                                        std::string right = expression.substr(opPos + 1);
+                                        char op = expression[opPos];
                                         double a = std::stod(left);
                                         double b = std::stod(right);
                                         double result = applyBinaryOperation(a, std::string(1, op), b);
                                         expression = std::to_string(result);
                                     }
-                                    catch (const std::exception& ex) {
-                                        expression = "Error";
-                                    }
+                                }
+                                catch (const std::exception& ex) {
+                                    expression = "Error";
                                 }
                             }
                             else if (key == "x!") {
