@@ -1,18 +1,13 @@
 #include <SFML/Graphics.hpp>
-#include <SFML/Window.hpp>
-#include <iostream>
-#include <vector>
 #include <string>
-#include <sstream>
-#include <cmath>
-#include <stdexcept>
-#include <algorithm>
-#include <bitset>
+#include <vector>
 #include "calculator_math.h"
+#include <iostream>
+#include <stdexcept>
+#include <cmath>
 
 /**
  * @brief Структура, представляющая графическую кнопку калькулятора
- *
  * Содержит визуальные элементы (прямоугольник и текст) и функциональную метку.
  */
 struct Button {
@@ -22,120 +17,74 @@ struct Button {
 };
 
 /**
- * @brief Создает кнопку с заданными параметрами
- *
- * @param label Текстовая метка кнопки
- * @param font Шрифт для текста кнопки
- * @param pos Позиция кнопки (верхний левый угол)
- * @param size Размер кнопки
- * @return Button Готовая кнопка с настроенными параметрами
- */
-Button createButton(const std::string& label, const sf::Font& font, sf::Vector2f pos, sf::Vector2f size) {
-    Button btn;
-    btn.label = label;
-    btn.shape.setPosition(pos);
-    btn.shape.setSize(size);
-    btn.shape.setFillColor(sf::Color::White);
-    btn.shape.setOutlineColor(sf::Color::Black);
-    btn.shape.setOutlineThickness(2.f);
-
-    btn.text.setFont(font);
-    btn.text.setString(label);
-    btn.text.setCharacterSize(20);
-    btn.text.setFillColor(sf::Color::Black);
-
-    sf::FloatRect textRect = btn.text.getLocalBounds();
-    btn.text.setOrigin(textRect.left + textRect.width / 2.0f,
-        textRect.top + textRect.height / 2.0f);
-    btn.text.setPosition(pos.x + size.x / 2, pos.y + size.y / 2);
-    return btn;
-}
-
+* @brief Главная функция приложения калькулятора
+* Инициализирует графический интерфейс, обрабатывает пользовательский ввод и выполняет математические операции.
+* @return int Код завершения программы (0 - успешное выполнение)
+*/
 int main() {
-    sf::RenderWindow window(sf::VideoMode(800, 600), "Graphical Calculator", sf::Style::Titlebar | sf::Style::Close);
+    const int windowWidth = 500;
+    const int windowHeight = 700;
+    sf::RenderWindow window(sf::VideoMode(windowWidth, windowHeight), "Calculator");
 
     sf::Font font;
-    std::string fontPath = "Sansation_Bold.ttf";
-    if (!font.loadFromFile(fontPath)) {
-        std::cerr << "Failed to load font from: " << fontPath << std::endl;
-        return EXIT_FAILURE;
+    if (!font.loadFromFile("Sansation_Bold.ttf")) {
+        std::cerr << "Ошибка загрузки шрифта Sansation_Bold.ttf" << std::endl;
+        return -1;
     }
 
-    sf::RectangleShape displayRect(sf::Vector2f(780, 80));
-    displayRect.setFillColor(sf::Color(200, 200, 200));
-    displayRect.setPosition(10, 10);
-    displayRect.setOutlineColor(sf::Color::Black);
-    displayRect.setOutlineThickness(2.f);
+    sf::Text display;
+    display.setFont(font);
+    display.setCharacterSize(24);
+    display.setFillColor(sf::Color::White);
+    display.setPosition(10, 10);
 
-    sf::Text displayText;
-    displayText.setFont(font);
-    displayText.setCharacterSize(24);
-    displayText.setFillColor(sf::Color::Black);
-    displayText.setPosition(20, 20);
-    std::string calcDisplay = "0";
-
-    double storedValue = 0.0;
-    std::string pendingOp = "";
-    bool awaitingBinaryOperation = false;
-    bool resetDisplay = false;
-    bool isConverting = false;
-    bool isEnteringBase = false;
-    int targetBase = 10;
-    std::string numberToConvert = "";
-    std::string baseInput = "";
+    std::string expression;
+    std::vector<std::string> buttonLabels = {
+        "7", "8", "9", "+", "-",
+        "4", "5", "6", "*", "/",
+        "1", "2", "3", "x!", "C",
+        "0", ".", "=", "sin", "cos",
+        "tan", "cot",
+        "2-cc", "3-cc", "4-cc", "5-cc", "6-cc", "7-cc", "8-cc", "9-cc", "16-cc",
+        "±"
+    };
 
     std::vector<Button> buttons;
+    const int margin = 10;   
+    const int displayHeight = 50;
+    const int gridTop = displayHeight + 20; 
+    const int gridHeight = windowHeight - gridTop - margin;
 
-    sf::Vector2f basicStart(10, 100);
-    sf::Vector2f basicSize(90, 70);
-    float basicSpacing = 10;
+    const int cols = 5;
+    int rows = (buttonLabels.size() + cols - 1) / cols;  
 
-    std::vector<std::vector<std::string>> basicLabels = {
-        {"7", "8", "9", "/"},
-        {"4", "5", "6", "*"},
-        {"1", "2", "3", "-"},
-        {"0", ".", "=", "+"}
-    };
+    float btnWidth = (windowWidth - (cols + 1) * margin) / static_cast<float>(cols);
+    float btnHeight = (gridHeight - (rows + 1) * margin) / static_cast<float>(rows);
 
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            sf::Vector2f pos(basicStart.x + j * (basicSize.x + basicSpacing),
-                basicStart.y + i * (basicSize.y + basicSpacing));
-            buttons.push_back(createButton(basicLabels[i][j], font, pos, basicSize));
-        }
+    for (size_t i = 0; i < buttonLabels.size(); i++) {
+        int row = i / cols;
+        int col = i % cols;
+        float posX = margin + col * (btnWidth + margin);
+        float posY = gridTop + margin + row * (btnHeight + margin);
+
+        Button btn;
+        btn.label = buttonLabels[i];
+        btn.shape.setSize(sf::Vector2f(btnWidth, btnHeight));
+        btn.shape.setFillColor(sf::Color(100, 100, 100));
+        btn.shape.setPosition(posX, posY);
+
+        btn.text.setFont(font);
+        btn.text.setString(btn.label);
+        btn.text.setCharacterSize(20);
+        btn.text.setFillColor(sf::Color::White);
+
+        sf::FloatRect textRect = btn.text.getLocalBounds();
+        btn.text.setOrigin(textRect.left + textRect.width / 2.0f,
+            textRect.top + textRect.height / 2.0f);
+        btn.text.setPosition(posX + btnWidth / 2.0f, posY + btnHeight / 2.0f);
+
+        buttons.push_back(btn);
     }
-
-    sf::Vector2f funcStart(420, 100);
-    sf::Vector2f funcSize(150, 60);
-    float funcSpacing = 10;
-
-    std::vector<std::vector<std::string>> funcLabels = {
-        {"sin", "cos"},
-        {"tan", "cot"},
-        {"^", "!"},
-        {"+/-", "conv"},
-        {"DEL", "EXIT"}
-    };
-
-    for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < 2; j++) {
-            sf::Vector2f pos(funcStart.x + j * (funcSize.x + funcSpacing),
-                funcStart.y + i * (funcSize.y + funcSpacing));
-            buttons.push_back(createButton(funcLabels[i][j], font, pos, funcSize));
-        }
-    }
-
-    /**
-    * @brief Обновляет текстовый дисплей калькулятора
-    *
-    * @param calcDisplay Текущее значение для отображения (строка)
-    * @param displayText SFML-текст для визуализации
-    * @param displayRect SFML-прямоугольник, определяющий границы дисплея
-    */
-    auto updateDisplayText = [&]() {
-        displayText.setString(calcDisplay);
-        };
-    updateDisplayText();
 
     while (window.isOpen()) {
         sf::Event event;
@@ -145,177 +94,98 @@ int main() {
 
             if (event.type == sf::Event::MouseButtonPressed) {
                 if (event.mouseButton.button == sf::Mouse::Left) {
-                    sf::Vector2f mousePos = window.mapPixelToCoords({ event.mouseButton.x, event.mouseButton.y });
+                    sf::Vector2f mousePos(event.mouseButton.x, event.mouseButton.y);
                     for (auto& btn : buttons) {
                         if (btn.shape.getGlobalBounds().contains(mousePos)) {
-                            std::string label = btn.label;
-                            try {
-                                if (label == "EXIT") {
-                                    window.close();
-                                }
-                                else if (label == "DEL") {
-                                    if (isConverting) {
-                                        if (isEnteringBase) {
-                                            if (!baseInput.empty()) {
-                                                baseInput.pop_back();
-                                                if (baseInput.empty()) {
-                                                    isEnteringBase = false;
-                                                    calcDisplay = "Base? (2-16)";
-                                                }
-                                                else {
-                                                    calcDisplay = "Base: " + baseInput;
-                                                }
-                                            }
-                                        }
-                                        else {
-                                            isConverting = false;
-                                            calcDisplay = numberToConvert;
-                                        }
+                            std::string key = btn.label;
+                            if (expression == "Error" && key != "C") {
+                                expression = "";
+                            }
+                            if (key == "C") {
+                                expression = "";
+                            }
+                            else if (key == "=") {
+                                size_t opPos = expression.find_first_of("+-*/^");
+                                if (opPos != std::string::npos) {
+                                    std::string left = expression.substr(0, opPos);
+                                    std::string right = expression.substr(opPos + 1);
+                                    char op = expression[opPos];
+                                    try {
+                                        double a = std::stod(left);
+                                        double b = std::stod(right);
+                                        double result = applyBinaryOperation(a, std::string(1, op), b);
+                                        expression = std::to_string(result);
                                     }
-                                    else {
-                                        if (!calcDisplay.empty()) {
-                                            calcDisplay.pop_back();
-                                            if (calcDisplay.empty())
-                                                calcDisplay = "0";
-                                        }
-                                    }
-                                }
-                                else if (label == "conv") {
-                                    if (!isConverting) {
-                                        numberToConvert = calcDisplay;
-                                        isConverting = true;
-                                        isEnteringBase = true;
-                                        baseInput = "";
-                                        calcDisplay = "Base? (2-16)";
-                                    }
-                                }
-                                else if (isdigit(label[0])) {
-                                    if (isConverting && isEnteringBase) {
-                                        baseInput += label;
-                                        calcDisplay = "Base: " + baseInput;
-
-                                        if (baseInput.length() == 2) { 
-                                            targetBase = std::stoi(baseInput);
-                                            if (targetBase >= 2 && targetBase <= 16) {
-                                                calcDisplay = convertBase(numberToConvert, 10, targetBase);
-                                                isConverting = false;
-                                                isEnteringBase = false;
-                                            }
-                                            else {
-                                                calcDisplay = "Invalid base";
-                                                isConverting = false;
-                                                isEnteringBase = false;
-                                            }
-                                        }
-                                    }
-                                    else if (!isConverting) {
-                                        if (resetDisplay) {
-                                            calcDisplay = "";
-                                            resetDisplay = false;
-                                        }
-                                        if (calcDisplay == "0")
-                                            calcDisplay = label;
-                                        else
-                                            calcDisplay += label;
-                                    }
-                                }
-                                else if (label == "+" || label == "-" || label == "*" || label == "/" || label == "^") {
-                                    double currentVal = std::stod(calcDisplay);
-                                    if (!awaitingBinaryOperation) {
-                                        storedValue = currentVal;
-                                        pendingOp = label;
-                                        awaitingBinaryOperation = true;
-                                        resetDisplay = true;
-                                    }
-                                    else {
-                                        double result = applyBinaryOperation(storedValue, pendingOp, currentVal);
-                                        storedValue = result;
-                                        pendingOp = label;
-                                        calcDisplay = std::to_string(result);
-                                        resetDisplay = true;
-                                    }
-                                }
-                                else if (label == "=") {
-                                    if (awaitingBinaryOperation) {
-                                        double currentVal = std::stod(calcDisplay);
-                                        double result = applyBinaryOperation(storedValue, pendingOp, currentVal);
-                                        calcDisplay = std::to_string(result);
-                                        awaitingBinaryOperation = false;
-                                        pendingOp = "";
-                                        resetDisplay = true;
-                                    }
-                                }
-                                else if (label == "sin") {
-                                    double val = std::stod(calcDisplay);
-                                    double result = std::sin(val);
-                                    calcDisplay = std::to_string(result);
-                                    resetDisplay = true;
-                                }
-                                else if (label == "cos") {
-                                    double val = std::stod(calcDisplay);
-                                    double result = std::cos(val);
-                                    calcDisplay = std::to_string(result);
-                                    resetDisplay = true;
-                                }
-                                else if (label == "tan") {
-                                    double val = std::stod(calcDisplay);
-                                    double result = std::tan(val);
-                                    calcDisplay = std::to_string(result);
-                                    resetDisplay = true;
-                                }
-                                else if (label == "cot") {
-                                    double val = std::stod(calcDisplay);
-                                    double tanVal = std::tan(val);
-                                    if (tanVal == 0)
-                                        throw std::runtime_error("cot of 0");
-                                    double result = 1.0 / tanVal;
-                                    calcDisplay = std::to_string(result);
-                                    resetDisplay = true;
-                                }
-                                else if (label == "!") {
-                                    double val = std::stod(calcDisplay);
-                                    double result = factorial(val);
-                                    calcDisplay = std::to_string(result);
-                                    resetDisplay = true;
-                                }
-                                else if (label == "+/-") {
-                                    if (!calcDisplay.empty() && calcDisplay[0] == '-')
-                                        calcDisplay.erase(0, 1);
-                                    else
-                                        calcDisplay = "-" + calcDisplay;
-                                }
-                                else if (label == ".") {
-                                    if (calcDisplay.find('.') == std::string::npos) {
-                                        calcDisplay += ".";
+                                    catch (const std::exception& ex) {
+                                        expression = "Error";
                                     }
                                 }
                             }
-                            catch (std::exception& ex) {
-                                calcDisplay = std::string("Error: ") + ex.what();
-                                awaitingBinaryOperation = false;
-                                pendingOp = "";
-                                resetDisplay = true;
-                                isConverting = false;
-                                isEnteringBase = false;
+                            else if (key == "x!") {
+                                try {
+                                    double val = std::stod(expression);
+                                    double res = factorial(val);
+                                    expression = std::to_string(res);
+                                }
+                                catch (const std::exception& ex) {
+                                    expression = "Error";
+                                }
                             }
-                            updateDisplayText();
-                            break;
+                            else if (key == "sin" || key == "cos" ||
+                                key == "tan" || key == "cot") {
+                                try {
+                                    double angle = std::stod(expression);
+                                    double res = applyTrigonometricOperation(angle, key);
+                                    expression = std::to_string(res);
+                                }
+                                catch (const std::exception& ex) {
+                                    expression = "Error";
+                                }
+                            }
+                            else if (key.find("-cc") != std::string::npos) {
+                                try {
+                                    size_t pos = key.find("-cc");
+                                    int targetBase = std::stoi(key.substr(0, pos));
+                                    expression = convertBase(expression, 10, targetBase);
+                                }
+                                catch (const std::exception& ex) {
+                                    expression = "Error";
+                                }
+                            }
+                            else if (key == "±") {
+                                if (expression.empty()) {
+                                    expression = "-";
+                                }
+                                else {
+                                    if (expression[0] == '-') {
+                                        expression = expression.substr(1);
+                                    }
+                                    else {
+                                        expression = "-" + expression;
+                                    }
+                                }
+                            }
+                            else if (key == "+" || key == "-" || key == "*" || key == "/" || key == "^") {
+                                std::string operators = "+-*/^";
+                                if (expression.empty() ||
+                                    operators.find(expression.back()) != std::string::npos) {
+                                    expression = "Error";
+                                }
+                                else {
+                                    expression += key;
+                                }
+                            }
+                            else {
+                                expression += key;
+                            }
+                            display.setString(expression);
                         }
                     }
                 }
             }
         }
-
-        if (isConverting) {
-            displayRect.setFillColor(sf::Color(200, 230, 200));
-        }
-        else {
-            displayRect.setFillColor(sf::Color(200, 200, 200));
-        }
-
-        window.clear(sf::Color::White);
-        window.draw(displayRect);
-        window.draw(displayText);
+        window.clear(sf::Color::Black);
+        window.draw(display);
         for (auto& btn : buttons) {
             window.draw(btn.shape);
             window.draw(btn.text);
