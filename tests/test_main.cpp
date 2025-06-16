@@ -10,7 +10,7 @@ TEST_CASE("applyBinaryOperation tests") {
     CHECK(applyBinaryOperation(3, "*", 4) == 12);
     CHECK(applyBinaryOperation(10, "/", 2) == 5);
     CHECK(applyBinaryOperation(2, "^", 3) == 8);
-    CHECK_THROWS_WITH_AS(applyBinaryOperation(2, "/", 0), "Деление на ноль", std::runtime_error);
+    CHECK_THROWS_WITH_AS(applyBinaryOperation(2, "/", 0), "Division by zero", std::runtime_error);
     CHECK_THROWS_AS(applyBinaryOperation(2, "%", 3), std::runtime_error);
 }
 
@@ -40,11 +40,11 @@ TEST_CASE("applyTrigonometricOperation tests") {
 
     CHECK(applyTrigonometricOperation(45, "tan") == 1);
     CHECK_THROWS_WITH_AS(applyTrigonometricOperation(90, "tan"),
-        "Тангенс не определен для данного угла", std::runtime_error);
+        "Tangent is not defined for this angle.", std::runtime_error);
 
     CHECK(applyTrigonometricOperation(45, "cot") == 1);
     CHECK_THROWS_WITH_AS(applyTrigonometricOperation(0, "cot"),
-        "Котангенс не определен для данного угла", std::runtime_error);
+        "Cotangent is not defined for this angle.", std::runtime_error);
     CHECK_THROWS_WITH_AS(applyTrigonometricOperation(180, "cot"),
-        "Котангенс не определен для данного угла", std::runtime_error);
+        "Cotangent is not defined for this angle.", std::runtime_error);
 }
