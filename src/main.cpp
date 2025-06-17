@@ -75,7 +75,7 @@ int main() {
 
         btn.text.setFont(font);
         btn.text.setString(btn.label);
-        btn.text.setCharacterSize(20);
+        btn.text.setCharacterSize(24);
         btn.text.setFillColor(sf::Color::White);
 
         sf::FloatRect textRect = btn.text.getLocalBounds();
@@ -114,7 +114,7 @@ int main() {
                                     for (size_t i = 1; i < expression.size(); ++i) {
                                         char c = expression[i];
                                         if (c == '+' || c == '-' || c == '*' || c == '/' || c == '^') {
-                                            if (c == '-' && (expression[i - 1] == '*' || expression[i - 1] == '/' || expression[i - 1] == '^')) {
+                                            if (c == '-') {
                                                 continue;  
                                             }
                                             opPos = i;
