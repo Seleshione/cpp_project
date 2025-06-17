@@ -46,7 +46,7 @@ int main() {
         "0", ".", "=", "sin", "cos",
         "tan", "cot",
         "2-cc", "3-cc", "4-cc", "5-cc", "6-cc", "7-cc", "8-cc", "9-cc", "16-cc",
-        "±"
+        "±", "Exit"
     };
 
     std::vector<Button> buttons;
@@ -98,6 +98,10 @@ int main() {
                     for (auto& btn : buttons) {
                         if (btn.shape.getGlobalBounds().contains(mousePos)) {
                             std::string key = btn.label;
+                            if (key == "Exit") {
+                                window.close();
+                                continue;
+                            }
                             if (expression == "Error" && key != "C") {
                                 expression = "";
                             }
